@@ -2,7 +2,7 @@
 <html>
 <head>
   <title>Catchphrase Game</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/random-words/1.3.0/random-words.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chance/1.1.11/chance.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -64,10 +64,6 @@
     .reset-btn:hover {
       background-color: #7f8c8d;
     }
-    .disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
     .team-scores {
       display: flex;
       justify-content: space-around;
@@ -114,6 +110,7 @@
       <select id="timer-select" class="timer-select">
         <option value="60">60 Seconds</option>
         <option value="90" selected>90 Seconds</option>
+        <option value="120">120 Seconds</option>
       </select>
     </div>
     <div class="team-scores">
@@ -140,6 +137,7 @@
     let timeLeft = 90;
     let gameActive = false;
     let currentWord = "";
+    let preloadedWords = [];
 
     const team1Score = document.getElementById("team1-score");
     const team2Score = document.getElementById("team2-score");
@@ -153,14 +151,10 @@
     const nextBtn = document.getElementById("next-btn");
     const timerSelect = document.getElementById("timer-select");
 
-    const preloadedWords = [];
-
-    function preloadWords() { 
-      try {
-        // Preload random words from the random-words library
-        preloadedWords.push(...randomWords({ exactly: 240, maxLength: 8 })); 
-      } catch (error) {
-        console.error("Error preloading words:", error);
+    function preloadWords(count = 50) {
+      preloadedWords = []; // Clear previous words
+      for (let i = 0; i < count; i++) {
+        preloadedWords.push(chance.word({ length: Math.floor(Math.random() * 8) + 3 }));
       }
     }
 
@@ -183,9 +177,9 @@
         startBtn.textContent = "Stop Game";
         nextBtn.disabled = false;
         updateTeamNames();
-        nextWord(); 
+        preloadWords();
+        nextWord();
         startTimer();
-        preloadWords(); // Start preloading words
       } else {
         stopGame();
       }
@@ -207,7 +201,7 @@
       wordDisplay.textContent = "Press Start to begin!";
       timeLeft = parseInt(timerSelect.value);
       updateTimerDisplay();
-      preloadedWords.length = 0; // Clear preloaded words
+      preloadedWords = [];
     }
 
     function startTimer() {
@@ -223,20 +217,11 @@
 
     function nextWord() {
       if (gameActive) {
-        wordDisplay.textContent = "Loading..."; 
-
-        try {
-          if (preloadedWords.length > 0) {
-            const randomIndex = Math.floor(Math.random() * preloadedWords.length);
-            currentWord = preloadedWords.splice(randomIndex, 1)[0];
-          } else {
-            currentWord = randomWords({ exactly: 1, maxLength: 8 })[0];
-          }
-          wordDisplay.textContent = currentWord;
-        } catch (error) {
-          console.error("Error getting word:", error);
-          wordDisplay.textContent = "Error loading word";
+        if (preloadedWords.length === 0) {
+          preloadWords();
         }
+        currentWord = preloadedWords.pop();
+        wordDisplay.textContent = currentWord || "Error loading word";
       }
     }
 
@@ -245,7 +230,7 @@
       scoreElement.textContent = parseInt(scoreElement.textContent) + 1;
     }
 
-    // Keyboard shortcuts
+    // Event listeners
     document.addEventListener('keydown', (e) => {
       if (e.code === 'Space') {
         e.preventDefault();
@@ -259,15 +244,16 @@
       }
     });
 
-    updateTimerDisplay();
-
     team1Input.addEventListener('input', updateTeamNames);
     team2Input.addEventListener('input', updateTeamNames);
-
     timerSelect.addEventListener('change', () => {
       timeLeft = parseInt(timerSelect.value);
       updateTimerDisplay();
     });
+
+    // Initial setup
+    updateTimerDisplay();
+    preloadWords();
   </script>
 </body>
 </html>
